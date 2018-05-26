@@ -1,4 +1,5 @@
 import Vapor
+import Crypto
 
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
@@ -19,6 +20,8 @@ struct UsersController: RouteCollection {
 	
 	func createHandler(_ req: Request) throws -> Future<User> {
 		return try req.content.decode(User.self).flatMap(to: User.self) { user in
+			let hasher = try req.make(BCryptDigest.self)
+			user.identity.password = user.identity.password != nil ? try hasher.hash(user.identity.password!) : nil
 			return user.save(on: req)
 		}
 	}
@@ -36,7 +39,7 @@ struct UsersController: RouteCollection {
 	func updateHandler(_ req: Request) throws -> Future<User> {
 		return try flatMap(to: User.self, req.parameters.next(User.self), req.content.decode(User.self)) { user, updated in
 			user.name = updated.name
-			user.email = updated.email
+			user.identity = updated.identity
 			return user.save(on: req)
 		}
 	}

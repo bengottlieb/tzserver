@@ -8,7 +8,7 @@ final class Timezone: Codable {
 	var officialName: String
 	var abbreviation: String
 	var placeID: String?
-	var nearbyCity: String?
+	var cityName: String?
 
 	var ownerID: Int?
 
@@ -16,7 +16,7 @@ final class Timezone: Codable {
 		self.name = name
 		self.officialName = officialName
 		self.abbreviation = abbreviation
-		self.nearbyCity = nearbyCity
+		self.cityName = nearbyCity
 		self.placeID = placeID
 	}
 	
