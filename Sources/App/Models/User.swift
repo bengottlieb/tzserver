@@ -5,7 +5,7 @@ import Authentication
 /// A single entry of a User list.
 final class User: Codable {
 	enum Permission: String, Codable { case user, manager, admin }
-	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword }
+	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified }
 	
 	var identity: Identity
 	var id: Int?
@@ -13,7 +13,7 @@ final class User: Codable {
 	var permissions: Permission
 	var image: Data?
 	var imageURL: URL?
-	
+	var emailIsVerified: Bool?
 	
 	var authenticationUsername: String = ""
 	var authenticationPassword: String = ""
@@ -24,6 +24,7 @@ final class User: Codable {
 		self.permissions = permissions
 		self.authenticationPassword = identity.authenticationPassword
 		self.authenticationUsername = identity.authenticationUsername
+		self.emailIsVerified = identity.kind != .email
 	}
 	
 	init(from decoder: Decoder) throws {
@@ -33,6 +34,7 @@ final class User: Codable {
 		self.identity = try container.decode(Identity.self, forKey: .identity)
 		self.id = try container.decodeIfPresent(Int.self, forKey: .id)
 		self.image = try container.decodeIfPresent(Data.self, forKey: .image)
+		self.emailIsVerified = try container.decodeIfPresent(Bool.self, forKey: .emailIsVerified) ?? false
 		if let url = try container.decodeIfPresent(String.self, forKey: .imageURL) {
 			self.imageURL = URL(string: url)
 		}
@@ -56,7 +58,7 @@ final class User: Codable {
 		if let image = self.image { try container.encode(image, forKey: .image) }
 		if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 		try container.encode(self.permissions.rawValue, forKey: .permissions)
-		
+		try container.encode(self.emailIsVerified, forKey: .emailIsVerified)
 		try container.encode(self.identity.authenticationUsername, forKey: .authenticationUsername)
 		try container.encode(self.identity.authenticationPassword, forKey: .authenticationPassword)
 	}

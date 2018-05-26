@@ -2,14 +2,6 @@ import Vapor
 import Crypto
 import Authentication
 
-final class ExistsPayload: Codable, Content {
-	var exists: Bool
-	
-	init(user: User?) {
-		self.exists = user != nil
-	}
-}
-
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
 	func boot(router: Router) throws {
@@ -48,6 +40,12 @@ struct UsersController: RouteCollection {
 	
 	func loginHandler(_ req: Request) throws -> Future<Token> {
 		let user = try req.requireAuthenticated(User.self)
+		if user.emailIsVerified == false {
+			throw Abort(.badRequest, reason: "\(user.name ?? "user") has not been verified.")
+		}
+		
+//		let token = try TokenPayload(user: user, from: req)
+//		return token.encode(status: HTTPStatus.created, for: req)
 		let token = try Token.generate(for: user)
 		return token.save(on: req)
 	}

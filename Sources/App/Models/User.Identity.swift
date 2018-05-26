@@ -16,6 +16,7 @@ extension User {
 		var authenticationPassword: String { return self.password ?? "password" }
 		
 		var derivedUsername: String {
+			if let email = self.email, !email.isEmpty { return email }
 			var username = self.kind.rawValue + "-"
 			if let serviceID = self.serviceID { username += serviceID }
 			return username
