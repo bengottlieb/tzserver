@@ -33,4 +33,6 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: Timezone.self, database: .sqlite)
     services.register(migrations)
 
+	
+	User.Public.defaultDatabase = .sqlite
 }

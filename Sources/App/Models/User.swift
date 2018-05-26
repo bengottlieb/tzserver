@@ -60,4 +60,3 @@ extension User: Content { }
 
 /// Allows `User` to be used as a dynamic parameter in route definitions.
 extension User: Parameter { }
-

@@ -9,13 +9,13 @@ struct UsersController: RouteCollection {
 		usersRoute.get(use: getAllHandler)
 		usersRoute.put(User.parameter, use: updateHandler)
 		usersRoute.post(use: createHandler)
-		usersRoute.get(User.parameter, use: getHandler)
+		usersRoute.get(User.Public.parameter, use: getHandler)
 		usersRoute.delete(User.parameter, use: deleteHandler)
 //		usersRoute.get(User.parameter, "timezones", use: getTimezonesHandler)
 	}
 	
-	func getAllHandler(_ req: Request) throws -> Future<[User]> {
-		return User.query(on: req).all()
+	func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
+		return User.Public.query(on: req).all()
 	}
 	
 	func createHandler(_ req: Request) throws -> Future<User> {
@@ -26,8 +26,8 @@ struct UsersController: RouteCollection {
 		}
 	}
 	
-	func getHandler(_ req: Request) throws -> Future<User> {
-		return try req.parameters.next(User.self)
+	func getHandler(_ req: Request) throws -> Future<User.Public> {
+		return try req.parameters.next(User.Public.self)
 	}
 	
 	func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
