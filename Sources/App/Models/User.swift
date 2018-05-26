@@ -1,10 +1,11 @@
 import FluentSQLite
 import Vapor
+import Authentication
 
 /// A single entry of a User list.
 final class User: Codable {
 	enum Permission: String, Codable { case user, manager, admin }
-	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL }
+	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword }
 	
 	var identity: Identity
 	var id: Int?
@@ -13,10 +14,16 @@ final class User: Codable {
 	var image: Data?
 	var imageURL: URL?
 	
+	
+	var authenticationUsername: String = ""
+	var authenticationPassword: String = ""
+
 	init(identity: Identity, name: String? = nil, permissions: Permission = .user) {
 		self.identity = identity
 		self.name = name
 		self.permissions = permissions
+		self.authenticationPassword = identity.authenticationPassword
+		self.authenticationUsername = identity.authenticationUsername
 	}
 	
 	init(from decoder: Decoder) throws {
@@ -34,6 +41,11 @@ final class User: Codable {
 		} else {
 			self.permissions = .user
 		}
+//		self.authenticationPassword = self.identity.authenticationPassword
+//		self.authenticationUsername = self.identity.authenticationUsername
+		
+		self.authenticationUsername = try container.decodeIfPresent(String.self, forKey: .authenticationUsername) ?? self.identity.authenticationUsername
+		self.authenticationPassword = try container.decodeIfPresent(String.self, forKey: .authenticationPassword) ?? self.identity.authenticationPassword
 	}
 	
 	func encode(to encoder: Encoder) throws {
@@ -44,6 +56,9 @@ final class User: Codable {
 		if let image = self.image { try container.encode(image, forKey: .image) }
 		if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 		try container.encode(self.permissions.rawValue, forKey: .permissions)
+		
+		try container.encode(self.identity.authenticationUsername, forKey: .authenticationUsername)
+		try container.encode(self.identity.authenticationPassword, forKey: .authenticationPassword)
 	}
 
 	var timezones: [Timezone] { return [] }
@@ -60,3 +75,26 @@ extension User: Content { }
 
 /// Allows `User` to be used as a dynamic parameter in route definitions.
 extension User: Parameter { }
+
+extension User: BasicAuthenticatable {
+	static let usernameKey: UsernameKey = \.authenticationUsername
+	static let passwordKey: PasswordKey = \.authenticationPassword
+
+	public static func authenticate(using basic: BasicAuthorization, verifier: PasswordVerifier, on conn: DatabaseConnectable) -> Future<User?> {
+		do {
+			return try User.query(on: conn).filter(usernameKey == basic.username).first().map(to: User?.self) { user in
+				guard let user = user, try verifier.verify(basic.password, created: user.basicPassword) else {
+					return nil
+				}
+				
+				return user
+			}
+		} catch {
+			return conn.eventLoop.newFailedFuture(error: error)
+		}
+	}
+}
+
+extension User: TokenAuthenticatable {
+	typealias TokenType = Token
+}

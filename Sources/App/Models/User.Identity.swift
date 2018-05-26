@@ -12,6 +12,15 @@ extension User {
 		var email: String?
 		var serviceID: String?
 		
+		var authenticationUsername: String { return self.email ?? self.derivedUsername }
+		var authenticationPassword: String { return self.password ?? "password" }
+		
+		var derivedUsername: String {
+			var username = self.kind.rawValue + "-"
+			if let serviceID = self.serviceID { username += serviceID }
+			return username
+		}
+		
 		static var sqliteFieldType: SQLiteFieldType { return .blob }
 		static func convertFromSQLiteData(_ data: SQLiteData) throws -> Identity {
 			if let raw = data.blob {

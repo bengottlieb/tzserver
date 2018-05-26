@@ -1,5 +1,6 @@
 import Vapor
 import Crypto
+import Authentication
 
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
@@ -12,10 +13,20 @@ struct UsersController: RouteCollection {
 		usersRoute.get(User.Public.parameter, use: getHandler)
 		usersRoute.delete(User.parameter, use: deleteHandler)
 //		usersRoute.get(User.parameter, "timezones", use: getTimezonesHandler)
+		
+		let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
+		let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
+		basicAuthGroup.post("login", use: loginHandler)
 	}
 	
 	func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
 		return User.Public.query(on: req).all()
+	}
+	
+	func loginHandler(_ req: Request) throws -> Future<Token> {
+		let user = try req.requireAuthenticated(User.self)
+		let token = try Token.generate(for: user)
+		return token.save(on: req)
 	}
 	
 	func createHandler(_ req: Request) throws -> Future<User> {
