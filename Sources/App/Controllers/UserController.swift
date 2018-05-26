@@ -2,10 +2,20 @@ import Vapor
 import Crypto
 import Authentication
 
+final class ExistsPayload: Codable, Content {
+	var exists: Bool
+	
+	init(user: User?) {
+		self.exists = user != nil
+	}
+}
+
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
 	func boot(router: Router) throws {
 		let usersRoute = router.grouped("api", "users")
+		
+		usersRoute.get("exists", String.parameter, use: existsHandler)
 		
 		usersRoute.get(use: getAllHandler)
 		usersRoute.put(User.parameter, use: updateHandler)
@@ -17,6 +27,19 @@ struct UsersController: RouteCollection {
 		let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
 		let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
 		basicAuthGroup.post("login", use: loginHandler)
+	}
+	
+	func existsHandler(_ req: Request) throws -> Future<ExistsPayload> {
+		let checkName = try req.parameters.next(String.self)
+		return req.withPooledConnection(to: .sqlite) { conn in
+			do {
+				return try User.query(on: conn).filter(\.authenticationUsername == checkName).first().map(to: ExistsPayload.self) { user in
+					return ExistsPayload(user: user)
+				}
+			} catch {
+				return conn.eventLoop.newFailedFuture(error: error)
+			}
+		}
 	}
 	
 	func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
