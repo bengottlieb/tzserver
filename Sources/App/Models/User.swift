@@ -5,7 +5,7 @@ import Authentication
 /// A single entry of a User list.
 final class User: Codable {
 	enum Permission: String, Codable { case user, manager, admin }
-	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified }
+	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified, verificationToken }
 	
 	var identity: Identity
 	var id: Int?
@@ -14,7 +14,8 @@ final class User: Codable {
 	var image: Data?
 	var imageURL: URL?
 	var emailIsVerified: Bool?
-	
+	var verificationToken: String?
+
 	var authenticationUsername: String = ""
 	var authenticationPassword: String = ""
 
@@ -43,6 +44,7 @@ final class User: Codable {
 		} else {
 			self.permissions = .user
 		}
+		self.verificationToken = try container.decodeIfPresent(String.self, forKey: .verificationToken)
 //		self.authenticationPassword = self.identity.authenticationPassword
 //		self.authenticationUsername = self.identity.authenticationUsername
 		
@@ -59,6 +61,7 @@ final class User: Codable {
 		if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 		try container.encode(self.permissions.rawValue, forKey: .permissions)
 		try container.encode(self.emailIsVerified, forKey: .emailIsVerified)
+		try container.encode(self.verificationToken, forKey: .verificationToken)
 		try container.encode(self.identity.authenticationUsername, forKey: .authenticationUsername)
 		try container.encode(self.identity.authenticationPassword, forKey: .authenticationPassword)
 	}

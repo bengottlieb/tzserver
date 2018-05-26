@@ -8,7 +8,8 @@ struct UsersController: RouteCollection {
 		let usersRoute = router.grouped("api", "users")
 		
 		usersRoute.get("exists", String.parameter, use: existsHandler)
-		
+		usersRoute.get("validate", String.parameter, use: validationHandler)
+
 		usersRoute.get(use: getAllHandler)
 		usersRoute.put(User.parameter, use: updateHandler)
 		usersRoute.post(use: createHandler)
@@ -20,20 +21,7 @@ struct UsersController: RouteCollection {
 		let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
 		basicAuthGroup.post("login", use: loginHandler)
 	}
-	
-	func existsHandler(_ req: Request) throws -> Future<ExistsPayload> {
-		let checkName = try req.parameters.next(String.self)
-		return req.withPooledConnection(to: .sqlite) { conn in
-			do {
-				return try User.query(on: conn).filter(\.authenticationUsername == checkName).first().map(to: ExistsPayload.self) { user in
-					return ExistsPayload(user: user)
-				}
-			} catch {
-				return conn.eventLoop.newFailedFuture(error: error)
-			}
-		}
-	}
-	
+		
 	func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
 		return User.Public.query(on: req).all()
 	}
@@ -43,9 +31,7 @@ struct UsersController: RouteCollection {
 		if user.emailIsVerified == false {
 			throw Abort(.badRequest, reason: "\(user.name ?? "user") has not been verified.")
 		}
-		
-//		let token = try TokenPayload(user: user, from: req)
-//		return token.encode(status: HTTPStatus.created, for: req)
+
 		let token = try Token.generate(for: user)
 		return token.save(on: req)
 	}
@@ -54,6 +40,15 @@ struct UsersController: RouteCollection {
 		return try req.content.decode(User.self).flatMap(to: User.self) { user in
 			let hasher = try req.make(BCryptDigest.self)
 			user.identity.password = user.identity.password != nil ? try hasher.hash(user.identity.password!) : nil
+			
+			if user.identity.kind == .email {
+				let random = try CryptoRandom().generateData(count: 16)
+				user.verificationToken = random.base64EncodedString()
+				
+				user.sendVerificationEmail()
+			}
+			
+			print("Created user: \(user)")
 			return user.save(on: req)
 		}
 	}
