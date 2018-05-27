@@ -42,23 +42,37 @@ struct UsersController: RouteCollection {
 		return try LoginResult(user: user.public, token: token.token).encode(for: req)
 	}
 	
-	func createHandler(_ req: Request) throws -> Future<Response> {
-		return try req.content.decode(User.self).flatMap(to: Response.self) { user in
-			let hasher = try req.make(BCryptDigest.self)
-			user.identity.password = try hasher.hash(user.identity.password ?? "password")
+	func createHandler(_ req: Request) throws -> Future<User.Public> {
+		return try req.content.decode(User.self).flatMap(to: User.Public.self) { incoming in
 			
-			if user.identity.kind == .email {
-				let random = try CryptoRandom().generateData(count: 16)
-				user.verificationToken = random.base64EncodedString()
-				
-				user.sendVerificationEmail()
-			} else {
-				user.emailIsVerified = true
+			return req.withPooledConnection(to: .sqlite) { conn in
+				do {
+					return try User.query(on: conn).filter(\User.authenticationUsername == incoming.authenticationUsername).first().map(to: User.Public.self) { user in
+						if user != nil {
+							throw Abort(.badRequest, reason: "User already exists")
+						}
+						
+						let hasher = try req.make(BCryptDigest.self)
+						incoming.identity.password = try hasher.hash(incoming.identity.password ?? "password")
+						
+						if incoming.identity.kind == .email {
+							let random = try CryptoRandom().generateData(count: 16)
+							incoming.verificationToken = random.base64EncodedString()
+							
+							incoming.sendVerificationEmail()
+						} else {
+							incoming.emailIsVerified = true
+						}
+						
+						print("Created user: \(incoming)")
+						_ = incoming.save(on: req)
+						return incoming.public
+
+					}
+				} catch {
+					return conn.eventLoop.newFailedFuture(error: error)
+				}
 			}
-			
-			print("Created user: \(user)")
-			_ = user.save(on: req)
-			return try user.public.encode(for: req)
 		}
 	}
 	
