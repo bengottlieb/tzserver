@@ -5,12 +5,14 @@ extension User {
 	enum CodingError: Error { case couldNotConvert }
 	struct Identity: Codable, SQLiteDataConvertible, SQLiteFieldTypeStaticRepresentable {
 		enum Kind: String { case email, twitter, facebook }
-		enum CodableKey: CodingKey { case kind, email, password, serviceID }
+		enum CodableKey: CodingKey { case kind, email, password, serviceID, serviceName, serviceImageURL }
 		
 		var kind: Kind
 		var password: String?			//just a hash
 		var email: String?
 		var serviceID: String?
+		var serviceName: String?
+		var serviceImageURL: String?
 		
 		var authenticationUsername: String { return self.email ?? self.derivedUsername }
 		var authenticationPassword: String { return self.password ?? "password" }
@@ -41,6 +43,8 @@ extension User {
 			self.password = try container.decodeIfPresent(String.self, forKey: .password)
 			self.email = try container.decodeIfPresent(String.self, forKey: .email)
 			self.serviceID = try container.decodeIfPresent(String.self, forKey: .serviceID)
+			self.serviceName = try container.decodeIfPresent(String.self, forKey: .serviceName)
+			self.serviceImageURL = try container.decodeIfPresent(String.self, forKey: .serviceImageURL)
 			if let kind = try container.decodeIfPresent(String.self, forKey: .kind) {
 				self.kind = Kind(rawValue: kind) ?? .email
 			} else {
@@ -51,10 +55,12 @@ extension User {
 		func encode(to encoder: Encoder) throws {
 			var container = encoder.container(keyedBy: CodableKey.self)
 			
-			if let password = self.password { try container.encode(password, forKey: .password) }
-			if let email = self.email { try container.encode(email, forKey: .email) }
-			if let serviceID = self.serviceID { try container.encode(serviceID, forKey: .serviceID) }
+			try container.encode(self.password, forKey: .password)
+			try container.encode(self.email, forKey: .email)
+			try container.encode(self.serviceID, forKey: .serviceID)
 			try container.encode(self.kind.rawValue, forKey: .kind)
+			try container.encode(self.serviceName, forKey: .serviceName)
+			try container.encode(self.serviceImageURL, forKey: .serviceImageURL)
 		}
 		
 		init(email: String, password: String) {
@@ -86,11 +92,15 @@ extension User.Identity {
 		var kind: Kind
 		var email: String?
 		var serviceID: String?
-		
+		var serviceName: String?
+		var serviceImageURL: String?
+
 		init(_ identity: User.Identity) {
 			self.kind = identity.kind
 			self.email = identity.email
 			self.serviceID = identity.serviceID
+			self.serviceName = identity.serviceName
+			self.serviceImageURL = identity.serviceImageURL
 		}
 		
 		init(from decoder: Decoder) throws {
@@ -98,6 +108,8 @@ extension User.Identity {
 			
 			self.email = try container.decodeIfPresent(String.self, forKey: .email)
 			self.serviceID = try container.decodeIfPresent(String.self, forKey: .serviceID)
+			self.serviceName = try container.decodeIfPresent(String.self, forKey: .serviceName)
+			self.serviceImageURL = try container.decodeIfPresent(String.self, forKey: .serviceImageURL)
 			if let kind = try container.decodeIfPresent(String.self, forKey: .kind) {
 				self.kind = Kind(rawValue: kind) ?? .email
 			} else {
@@ -108,9 +120,11 @@ extension User.Identity {
 		func encode(to encoder: Encoder) throws {
 			var container = encoder.container(keyedBy: CodableKey.self)
 			
-			if let email = self.email { try container.encode(email, forKey: .email) }
-			if let serviceID = self.serviceID { try container.encode(serviceID, forKey: .serviceID) }
+			try container.encode(self.email, forKey: .email)
+			try container.encode(self.serviceID, forKey: .serviceID)
 			try container.encode(self.kind.rawValue, forKey: .kind)
+			try container.encode(self.serviceName, forKey: .serviceName)
+			try container.encode(self.serviceImageURL, forKey: .serviceImageURL)
 		}
 	}
 }
