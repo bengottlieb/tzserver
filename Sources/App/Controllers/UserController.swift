@@ -15,20 +15,28 @@ struct UsersController: RouteCollection {
 		usersRoute.get("exists", String.parameter, use: existsHandler)
 		usersRoute.get("validate", String.parameter, use: validationHandler)
 
-		usersRoute.get(use: getAllHandler)
-		usersRoute.put(User.parameter, use: updateHandler)
+//		usersRoute.get(use: getAllHandler)
+//		usersRoute.put(User.parameter, use: updateHandler)
 		usersRoute.post(use: createHandler)
-		usersRoute.get(User.Public.parameter, use: getHandler)
-		usersRoute.delete(User.parameter, use: deleteHandler)
+//		usersRoute.get(User.Public.parameter, use: getHandler)
+//		usersRoute.delete(User.parameter, use: deleteHandler)
 //		usersRoute.get(User.parameter, "timezones", use: getTimezonesHandler)
 		
 		let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
 		let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
 		basicAuthGroup.post("login", use: loginHandler)
+		
+		let tokenAuthMiddleware = User.tokenAuthMiddleware()
+		let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware)
+		tokenAuthGroup.delete(User.parameter, use: deleteHandler)
+		tokenAuthGroup.get(User.Public.parameter, use: getHandler)
+		tokenAuthGroup.get(User.Public.parameter, use: getHandler)
+		tokenAuthGroup.get(use: getAllHandler)
 	}
 		
-	func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
-		return User.Public.query(on: req).all()
+	func getAllHandler(_ req: Request) throws -> Future<[User]> {
+		_ = try req.requireAuthenticated(User.self)
+		return User.query(on: req).all()
 	}
 	
 	func loginHandler(_ req: Request) throws -> Future<Response> {
@@ -77,17 +85,32 @@ struct UsersController: RouteCollection {
 	}
 	
 	func getHandler(_ req: Request) throws -> Future<User.Public> {
+		_ = try req.requireAuthenticated(User.self)
 		return try req.parameters.next(User.Public.self)
 	}
 	
 	func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
+		let user = try req.requireAuthenticated(User.self)
+		if user.permissions != .admin {
+			throw Abort(.badRequest, reason: "\(user.name ?? "user") is not an admin.")
+		}
 		return try req.parameters.next(User.self).flatMap(to: HTTPStatus.self) { user in
 			return user.delete(on: req).transform(to: .noContent)
 		}
 	}
 	
 	func updateHandler(_ req: Request) throws -> Future<User> {
+		let currentUser = try req.requireAuthenticated(User.self)
+		if currentUser.permissions != .admin {
+			throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+		}
+
 		return try flatMap(to: User.self, req.parameters.next(User.self), req.content.decode(User.self)) { user, updated in
+			let current = try req.requireAuthenticated(User.self)
+			if current.permissions != .admin && current.id != user.id {
+				throw Abort(.badRequest, reason: "\(user.name ?? "user") is not an admin.")
+			}
+
 			user.name = updated.name
 			user.identity = updated.identity
 			return user.save(on: req)
