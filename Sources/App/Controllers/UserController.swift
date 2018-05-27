@@ -2,6 +2,11 @@ import Vapor
 import Crypto
 import Authentication
 
+struct LoginResult: Codable, Content {
+	let user: User.Public
+	let token: String
+}
+
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
 	func boot(router: Router) throws {
@@ -26,30 +31,34 @@ struct UsersController: RouteCollection {
 		return User.Public.query(on: req).all()
 	}
 	
-	func loginHandler(_ req: Request) throws -> Future<Token> {
+	func loginHandler(_ req: Request) throws -> Future<Response> {
 		let user = try req.requireAuthenticated(User.self)
 		if user.emailIsVerified == false {
 			throw Abort(.badRequest, reason: "\(user.name ?? "user") has not been verified.")
 		}
 
 		let token = try Token.generate(for: user)
-		return token.save(on: req)
+		_ = token.save(on: req)
+		return try LoginResult(user: user.public, token: token.token).encode(for: req)
 	}
 	
-	func createHandler(_ req: Request) throws -> Future<User> {
-		return try req.content.decode(User.self).flatMap(to: User.self) { user in
+	func createHandler(_ req: Request) throws -> Future<Response> {
+		return try req.content.decode(User.self).flatMap(to: Response.self) { user in
 			let hasher = try req.make(BCryptDigest.self)
-			user.identity.password = user.identity.password != nil ? try hasher.hash(user.identity.password!) : nil
+			user.identity.password = try hasher.hash(user.identity.password ?? "password")
 			
 			if user.identity.kind == .email {
 				let random = try CryptoRandom().generateData(count: 16)
 				user.verificationToken = random.base64EncodedString()
 				
 				user.sendVerificationEmail()
+			} else {
+				user.emailIsVerified = true
 			}
 			
 			print("Created user: \(user)")
-			return user.save(on: req)
+			_ = user.save(on: req)
+			return try user.public.encode(for: req)
 		}
 	}
 	

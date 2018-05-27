@@ -9,14 +9,23 @@ import FluentSQLite
 import Vapor
 
 extension User {
+	var `public`: Public { return User.Public(self) }
+	
 	final class Public: Codable {
 		var permissions: Permission
 		var name: String?
 		var id: Int?
 		var imageURL: URL?
 		var image: Data?
-		enum CodableKey: CodingKey { case id, name, permissions, image, imageURL }
+		var identity: Identity.Public?
 
+		init(_ user: User) {
+			self.name = user.name
+			self.id = user.id
+			self.permissions = user.permissions
+			self.identity = user.identity.public
+		}
+		
 		init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodableKey.self)
 			
@@ -31,6 +40,7 @@ extension User {
 			} else {
 				self.permissions = .user
 			}
+			self.identity = try container.decodeIfPresent(Identity.Public.self, forKey: .identity)
 		}
 		
 		func encode(to encoder: Encoder) throws {
@@ -40,6 +50,7 @@ extension User {
 			if let image = self.image { try container.encode(image, forKey: .image) }
 			if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 			try container.encode(self.permissions.rawValue, forKey: .permissions)
+			try container.encode(self.identity, forKey: .identity)
 		}
 	}
 }

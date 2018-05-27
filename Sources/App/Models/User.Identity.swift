@@ -76,3 +76,41 @@ extension User {
 		}
 	}
 }
+
+extension User.Identity {
+	var `public`: Public {
+		return Public(self)
+	}
+	
+	struct Public: Codable {
+		var kind: Kind
+		var email: String?
+		var serviceID: String?
+		
+		init(_ identity: User.Identity) {
+			self.kind = identity.kind
+			self.email = identity.email
+			self.serviceID = identity.serviceID
+		}
+		
+		init(from decoder: Decoder) throws {
+			let container = try decoder.container(keyedBy: CodableKey.self)
+			
+			self.email = try container.decodeIfPresent(String.self, forKey: .email)
+			self.serviceID = try container.decodeIfPresent(String.self, forKey: .serviceID)
+			if let kind = try container.decodeIfPresent(String.self, forKey: .kind) {
+				self.kind = Kind(rawValue: kind) ?? .email
+			} else {
+				self.kind = .email
+			}
+		}
+		
+		func encode(to encoder: Encoder) throws {
+			var container = encoder.container(keyedBy: CodableKey.self)
+			
+			if let email = self.email { try container.encode(email, forKey: .email) }
+			if let serviceID = self.serviceID { try container.encode(serviceID, forKey: .serviceID) }
+			try container.encode(self.kind.rawValue, forKey: .kind)
+		}
+	}
+}
