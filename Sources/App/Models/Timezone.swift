@@ -5,16 +5,17 @@ import Vapor
 final class Timezone: Codable {
 	var id: Int?
 	var name: String
-	var officialName: String
 	var abbreviation: String
 	var placeID: String?
 	var cityName: String?
+	var gmtOffset: Int = 0
+	var latitude: Double = 0
+	var longitude: Double = 0
 
 	var ownerID: Int?
 
-	init(name: String, officialName: String, abbreviation: String, nearbyCity: String, placeID: String?) {
+	init(name: String, abbreviation: String, nearbyCity: String, placeID: String?) {
 		self.name = name
-		self.officialName = officialName
 		self.abbreviation = abbreviation
 		self.cityName = nearbyCity
 		self.placeID = placeID

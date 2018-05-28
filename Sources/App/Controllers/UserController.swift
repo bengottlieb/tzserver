@@ -30,12 +30,21 @@ struct UsersController: RouteCollection {
 		let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware)
 		tokenAuthGroup.delete(User.parameter, use: deleteHandler)
 		tokenAuthGroup.get(User.parameter, use: getHandler)
+		tokenAuthGroup.get(User.parameter, "timezones", use: getTimezonesHandler)
 		tokenAuthGroup.get(use: getAllHandler)
 	}
 		
 	func getAllHandler(_ req: Request) throws -> Future<[User]> {
 		_ = try req.requireAuthenticated(User.self)
 		return User.query(on: req).all()
+	}
+	
+	func getTimezonesHandler(_ req: Request) throws -> Future<[Timezone]> {
+		_ = try req.requireAuthenticated(User.self)
+
+		return try req.parameters.next(User.self).flatMap(to: [Timezone].self) { user in
+			return try user.timezones.query(on: req).all()
+		}
 	}
 	
 	func loginHandler(_ req: Request) throws -> Future<Response> {
@@ -49,7 +58,7 @@ struct UsersController: RouteCollection {
 		return try LoginResult(user: user.public, token: token.token).encode(for: req)
 	}
 	
-	func createHandler(_ req: Request) throws -> Future<User.Public> {
+	func createHandler(_ req: Request) throws -> Future<Response> {
 		return try req.content.decode(User.self).flatMap(to: User.Public.self) { incoming in
 			
 			return req.withPooledConnection(to: .sqlite) { conn in
@@ -85,10 +94,13 @@ struct UsersController: RouteCollection {
 	
 	func getHandler(_ req: Request) throws -> Future<User> {
 		let currentUser = try req.requireAuthenticated(User.self)
-		if currentUser.permissions != .admin {
-			throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+		
+		return try req.parameters.next(User.self).flatMap(to: User.self) { user in
+			if currentUser.permissions != .admin && user.id != currentUser.id {
+				throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+			}
+			return user.save(on: req)
 		}
-		return try req.parameters.next(User.self)
 	}
 	
 	func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
