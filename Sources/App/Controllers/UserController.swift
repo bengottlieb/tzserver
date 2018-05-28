@@ -58,12 +58,12 @@ struct UsersController: RouteCollection {
 		return try LoginResult(user: user.public, token: token.token).encode(for: req)
 	}
 	
-	func createHandler(_ req: Request) throws -> Future<Response> {
-		return try req.content.decode(User.self).flatMap(to: User.Public.self) { incoming in
+	func createHandler(_ req: Request) throws -> Future<LoginResult> {
+		return try req.content.decode(User.self).flatMap(to: LoginResult.self) { incoming in
 			
 			return req.withPooledConnection(to: .sqlite) { conn in
 				do {
-					return try User.query(on: conn).filter(\User.authenticationUsername == incoming.authenticationUsername).first().map(to: User.Public.self) { user in
+					return try User.query(on: conn).filter(\User.authenticationUsername == incoming.authenticationUsername).first().map(to: LoginResult.self) { user in
 						if user != nil {
 							throw Abort(.badRequest, reason: "User already exists")
 						}
@@ -82,8 +82,10 @@ struct UsersController: RouteCollection {
 						
 						print("Created user: \(incoming)")
 						_ = incoming.save(on: req)
-						return incoming.public
 
+						let token = try Token.generate(for: incoming)
+						_ = token.save(on: req)
+						return LoginResult(user: incoming.public, token: token.token)
 					}
 				} catch {
 					return conn.eventLoop.newFailedFuture(error: error)
