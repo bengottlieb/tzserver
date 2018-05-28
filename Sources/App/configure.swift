@@ -32,7 +32,6 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 	migrations.add(model: Token.self, database: .sqlite)
     services.register(migrations)
 
-	
 	User.Public.defaultDatabase = .sqlite
 
 	/// Register routes to the router

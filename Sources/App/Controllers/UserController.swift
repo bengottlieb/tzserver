@@ -29,8 +29,7 @@ struct UsersController: RouteCollection {
 		let tokenAuthMiddleware = User.tokenAuthMiddleware()
 		let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware)
 		tokenAuthGroup.delete(User.parameter, use: deleteHandler)
-		tokenAuthGroup.get(User.Public.parameter, use: getHandler)
-		tokenAuthGroup.get(User.Public.parameter, use: getHandler)
+		tokenAuthGroup.get(User.parameter, use: getHandler)
 		tokenAuthGroup.get(use: getAllHandler)
 	}
 		
@@ -84,9 +83,12 @@ struct UsersController: RouteCollection {
 		}
 	}
 	
-	func getHandler(_ req: Request) throws -> Future<User.Public> {
-		_ = try req.requireAuthenticated(User.self)
-		return try req.parameters.next(User.Public.self)
+	func getHandler(_ req: Request) throws -> Future<User> {
+		let currentUser = try req.requireAuthenticated(User.self)
+		if currentUser.permissions != .admin {
+			throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+		}
+		return try req.parameters.next(User.self)
 	}
 	
 	func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
