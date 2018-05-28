@@ -19,11 +19,12 @@ final class Timezone: Codable {
 		self.cityName = nearbyCity
 		self.placeID = placeID
 	}
-	
-	var owner: User? { return nil }
 }
 
 extension Timezone: SQLiteModel {
+	var owner: Parent<Timezone, User>? {
+		return parent(\.ownerID)
+	}
 }
 
 

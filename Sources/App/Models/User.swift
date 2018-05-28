@@ -66,7 +66,9 @@ final class User: Codable {
 		try container.encode(self.identity.authenticationPassword, forKey: .authenticationPassword)
 	}
 
-	var timezones: [Timezone] { return [] }
+	var timezones: Children<User, Timezone> {
+		return children(\.ownerID)
+	}
 }
 
 extension User: SQLiteModel {
