@@ -32,6 +32,7 @@ struct UsersController: RouteCollection {
 		tokenAuthGroup.get(User.parameter, use: getHandler)
 		tokenAuthGroup.get(User.parameter, "timezones", use: getTimezonesHandler)
 		tokenAuthGroup.get(use: getAllHandler)
+		tokenAuthGroup.put(User.parameter, use: updateHandler)
 	}
 		
 	func getAllHandler(_ req: Request) throws -> Future<[User]> {
@@ -127,6 +128,7 @@ struct UsersController: RouteCollection {
 				throw Abort(.badRequest, reason: "\(user.name ?? "user") is not an admin.")
 			}
 
+			user.permissions = updated.permissions
 			user.name = updated.name
 			user.identity = updated.identity
 			return user.save(on: req)
