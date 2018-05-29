@@ -5,7 +5,7 @@ import Authentication
 /// A single entry of a User list.
 final class User: Codable {
 	enum Permission: String, Codable { case user, manager, admin }
-	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified, verificationToken }
+	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified, verificationToken, lockedOut, wrongPasswordCount }
 	
 	var identity: Identity
 	var id: Int?
@@ -14,6 +14,8 @@ final class User: Codable {
 	var image: Data?
 	var imageURL: URL?
 	var emailIsVerified: Bool?
+	var lockedOut: Bool?
+	var wrongPasswordCount: Int?
 	var verificationToken: String?
 
 	var authenticationUsername: String = ""
@@ -36,6 +38,8 @@ final class User: Codable {
 		self.id = try container.decodeIfPresent(Int.self, forKey: .id)
 		self.image = try container.decodeIfPresent(Data.self, forKey: .image)
 		self.emailIsVerified = try container.decodeIfPresent(Bool.self, forKey: .emailIsVerified) ?? false
+		self.lockedOut = try container.decodeIfPresent(Bool.self, forKey: .lockedOut) ?? false
+		self.wrongPasswordCount = try container.decodeIfPresent(Int.self, forKey: .wrongPasswordCount) ?? 0
 		if let url = try container.decodeIfPresent(String.self, forKey: .imageURL) {
 			self.imageURL = URL(string: url)
 		}
@@ -64,6 +68,8 @@ final class User: Codable {
 		try container.encode(self.verificationToken, forKey: .verificationToken)
 		try container.encode(self.identity.authenticationUsername, forKey: .authenticationUsername)
 		try container.encode(self.identity.authenticationPassword, forKey: .authenticationPassword)
+		try container.encode(self.lockedOut, forKey: .lockedOut)
+		try container.encode(self.wrongPasswordCount, forKey: .wrongPasswordCount)
 	}
 
 	var timezones: Children<User, Timezone> {

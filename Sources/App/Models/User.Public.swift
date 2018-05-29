@@ -18,12 +18,18 @@ extension User {
 		var imageURL: URL?
 		var image: Data?
 		var identity: Identity.Public?
+		var emailIsVerified: Bool?
+		var lockedOut: Bool?
+		var wrongPasswordCount: Int?
 
 		init(_ user: User) {
 			self.name = user.name
 			self.id = user.id
 			self.permissions = user.permissions
 			self.identity = user.identity.public
+			self.emailIsVerified = user.emailIsVerified ?? true
+			self.wrongPasswordCount = user.wrongPasswordCount ?? 0
+			self.lockedOut = user.lockedOut ?? false
 		}
 		
 		init(from decoder: Decoder) throws {
@@ -41,6 +47,9 @@ extension User {
 				self.permissions = .user
 			}
 			self.identity = try container.decodeIfPresent(Identity.Public.self, forKey: .identity)
+			self.emailIsVerified = try container.decodeIfPresent(Bool.self, forKey: .emailIsVerified) ?? false
+			self.lockedOut = try container.decodeIfPresent(Bool.self, forKey: .lockedOut) ?? false
+			self.wrongPasswordCount = try container.decodeIfPresent(Int.self, forKey: .wrongPasswordCount) ?? 0
 		}
 		
 		func encode(to encoder: Encoder) throws {
@@ -51,6 +60,9 @@ extension User {
 			if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 			try container.encode(self.permissions.rawValue, forKey: .permissions)
 			try container.encode(self.identity, forKey: .identity)
+			try container.encode(self.lockedOut, forKey: .lockedOut)
+			try container.encode(self.wrongPasswordCount, forKey: .wrongPasswordCount)
+			try container.encode(self.emailIsVerified, forKey: .emailIsVerified)
 		}
 	}
 }

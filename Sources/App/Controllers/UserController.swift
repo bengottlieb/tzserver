@@ -51,7 +51,7 @@ struct UsersController: RouteCollection {
 	func loginHandler(_ req: Request) throws -> Future<Response> {
 		let user = try req.requireAuthenticated(User.self)
 		if user.emailIsVerified == false {
-			throw Abort(.badRequest, reason: "\(user.name ?? "user") has not been verified.")
+			throw Abort(.proxyAuthenticationRequired, reason: "\(user.name ?? "User") has not been verified. Please check your email and click the activation link.")
 		}
 
 		let token = try Token.generate(for: user)
@@ -97,10 +97,13 @@ struct UsersController: RouteCollection {
 	
 	func getHandler(_ req: Request) throws -> Future<User> {
 		let currentUser = try req.requireAuthenticated(User.self)
+		if currentUser.emailIsVerified == false {
+			throw Abort(.proxyAuthenticationRequired, reason: "\(currentUser.name ?? "User") has not been verified. Please check your email and click the activation link.")
+		}
 		
 		return try req.parameters.next(User.self).flatMap(to: User.self) { user in
 			if currentUser.permissions != .admin && user.id != currentUser.id {
-				throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+				throw Abort(.forbidden, reason: "\(currentUser.name ?? "user") is not an admin.")
 			}
 			return user.save(on: req)
 		}
@@ -109,7 +112,7 @@ struct UsersController: RouteCollection {
 	func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
 		let user = try req.requireAuthenticated(User.self)
 		if user.permissions != .admin {
-			throw Abort(.badRequest, reason: "\(user.name ?? "user") is not an admin.")
+			throw Abort(.forbidden, reason: "\(user.name ?? "user") is not an admin.")
 		}
 		return try req.parameters.next(User.self).flatMap(to: HTTPStatus.self) { user in
 			return user.delete(on: req).transform(to: .noContent)
@@ -119,13 +122,13 @@ struct UsersController: RouteCollection {
 	func updateHandler(_ req: Request) throws -> Future<User> {
 		let currentUser = try req.requireAuthenticated(User.self)
 		if currentUser.permissions != .admin {
-			throw Abort(.badRequest, reason: "\(currentUser.name ?? "user") is not an admin.")
+			throw Abort(.forbidden, reason: "\(currentUser.name ?? "user") is not an admin.")
 		}
 
 		return try flatMap(to: User.self, req.parameters.next(User.self), req.content.decode(User.self)) { user, updated in
 			let current = try req.requireAuthenticated(User.self)
 			if current.permissions != .admin && current.id != user.id {
-				throw Abort(.badRequest, reason: "\(user.name ?? "user") is not an admin.")
+				throw Abort(.forbidden, reason: "\(user.name ?? "user") is not an admin.")
 			}
 
 			user.permissions = updated.permissions
