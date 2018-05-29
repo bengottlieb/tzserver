@@ -11,6 +11,8 @@ final class Timezone: Codable {
 	var gmtOffset: Int = 0
 	var latitude: Double = 0
 	var longitude: Double = 0
+	var identifierName: String? = nil
+	var dstOffset: Int? = nil
 
 	var ownerID: Int?
 

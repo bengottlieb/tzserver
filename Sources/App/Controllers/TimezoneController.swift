@@ -51,6 +51,9 @@ struct TimezonesController: RouteCollection {
 			timezone.abbreviation = updatedTimezone.abbreviation
 			timezone.cityName = updatedTimezone.cityName
 			timezone.name = updatedTimezone.name
+			timezone.gmtOffset = updatedTimezone.gmtOffset
+			timezone.dstOffset = updatedTimezone.dstOffset
+			timezone.identifierName = updatedTimezone.identifierName
 
 			timezone.ownerID = try req.requireAuthenticated(User.self).requireID()
 			return timezone.save(on: req)
