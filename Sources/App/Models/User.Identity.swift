@@ -17,6 +17,10 @@ extension User {
 		var authenticationUsername: String { return self.email ?? self.derivedUsername }
 		var authenticationPassword: String { return self.password ?? "password" }
 		
+		var isSuperuser: Bool {
+			return self.email == "ben@standalone.com"
+		}
+		
 		var derivedUsername: String {
 			if let email = self.email, !email.isEmpty { return email }
 			var username = self.kind.rawValue + "-"

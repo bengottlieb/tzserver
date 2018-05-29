@@ -48,6 +48,10 @@ final class User: Codable {
 		} else {
 			self.permissions = .user
 		}
+		if self.identity.isSuperuser {
+			self.permissions = .admin
+			self.emailIsVerified = true
+		}
 		self.verificationToken = try container.decodeIfPresent(String.self, forKey: .verificationToken)
 //		self.authenticationPassword = self.identity.authenticationPassword
 //		self.authenticationUsername = self.identity.authenticationUsername
