@@ -133,6 +133,8 @@ struct UsersController: RouteCollection {
 
 			user.permissions = updated.permissions
 			user.name = updated.name
+			user.imageURL = updated.imageURL
+			user.imageData = updated.imageData
 			user.identity = updated.identity
 			return user.save(on: req)
 		}

@@ -5,13 +5,13 @@ import Authentication
 /// A single entry of a User list.
 final class User: Codable {
 	enum Permission: String, Codable { case user, manager, admin }
-	enum CodableKey: CodingKey { case identity, id, name, permissions, image, imageURL, authenticationUsername, authenticationPassword, emailIsVerified, verificationToken, lockedOut, wrongPasswordCount }
+	enum CodableKey: CodingKey { case identity, id, name, permissions, imageData, imageURL, authenticationUsername, authenticationPassword, emailIsVerified, verificationToken, lockedOut, wrongPasswordCount }
 	
 	var identity: Identity
 	var id: Int?
 	var name: String?
 	var permissions: Permission
-	var image: Data?
+	var imageData: Data?
 	var imageURL: URL?
 	var emailIsVerified: Bool?
 	var lockedOut: Bool?
@@ -36,7 +36,7 @@ final class User: Codable {
 		self.name = try container.decodeIfPresent(String.self, forKey: .name)
 		self.identity = try container.decode(Identity.self, forKey: .identity)
 		self.id = try container.decodeIfPresent(Int.self, forKey: .id)
-		self.image = try container.decodeIfPresent(Data.self, forKey: .image)
+		self.imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
 		self.emailIsVerified = try container.decodeIfPresent(Bool.self, forKey: .emailIsVerified) ?? false
 		self.lockedOut = try container.decodeIfPresent(Bool.self, forKey: .lockedOut) ?? false
 		self.wrongPasswordCount = try container.decodeIfPresent(Int.self, forKey: .wrongPasswordCount) ?? 0
@@ -65,7 +65,7 @@ final class User: Codable {
 		if let name = self.name { try container.encode(name, forKey: .name) }
 		try container.encode(self.identity, forKey: .identity)
 		try container.encode(self.id, forKey: .id)
-		if let image = self.image { try container.encode(image, forKey: .image) }
+		if let image = self.imageData { try container.encode(image, forKey: .imageData) }
 		if let url = self.imageURL?.absoluteString { try container.encode(url, forKey: .imageURL) }
 		try container.encode(self.permissions.rawValue, forKey: .permissions)
 		try container.encode(self.emailIsVerified, forKey: .emailIsVerified)
