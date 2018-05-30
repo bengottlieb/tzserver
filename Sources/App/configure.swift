@@ -9,6 +9,8 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     try services.register(FluentSQLiteProvider())
 	try services.register(AuthenticationProvider())
 	try services.register(LeafProvider())
+	
+	config.prefer(LeafRenderer.self, for: ViewRenderer.self)
 
     /// Register middleware
     var middlewares = MiddlewareConfig() // Create _empty_ middleware config

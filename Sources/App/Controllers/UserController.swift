@@ -80,7 +80,9 @@ struct UsersController: RouteCollection {
 						}
 						
 						let hasher = try req.make(BCryptDigest.self)
-						incoming.identity.password = try hasher.hash(incoming.identity.password ?? "password")
+						let password = incoming.identity.password ?? "password"
+						let hashed = try hasher.hash(password, salt: "$2b$12$55hXn3a3wV5Ek3O6ZT2TUe")
+						incoming.identity.password = hashed
 						
 						if incoming.identity.kind == .email {
 							let random = try CryptoRandom().generateData(count: 16)

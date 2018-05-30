@@ -23,7 +23,7 @@ extension User {
 		let fromAddress = "info@timezones.com".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let subject = "Welcome to Timezones!".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		//		let link = "https://timezones-develop.vapor.cloud/api/users/rsvp".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-		let link = "http://localhost:8080/api/users/rsvp?a=\toAddress)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+		let link = "http://localhost:8080/rsvp?a=\toAddress)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let body = "Thanks for signing up to Timezones! Please set up your account by following this link: \(link).\n\nThanks, the Timezones Team!".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		
 		let payload = EmailPayload(from: fromAddress, to: toAddress, subject: subject, body: body)
@@ -36,7 +36,7 @@ extension User {
 		let fromAddress = "info@timezones.com".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let subject = "Welcome to Timezones!".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		//		let link = "https://timezones-develop.vapor.cloud/api/users/validate/\(validationToken)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-		let link = "http://localhost:8080/api/users/validate/\(validationToken)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+		let link = "http://localhost:8080/verify/\(validationToken)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let body = "Thanks for signing up to Timezones! Please validate your account by following this link: \(link).\n\nThanks, the Timezones Team!".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 
 		let payload = EmailPayload(from: fromAddress, to: toAddress, subject: subject, body: body)

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+	<meta charset="utf-8"/>
+	<title>Welcome to Timezones</title>
+</head>
+
+<body>
+<h2>Thanks for your interest in a Timezones account.</h2>
+
+<p>Please enter your desired password below:</p>
+<form method="POST" action="/rsvp-set-password">
+	<input type="hidden" name="email" value="#(email)" >
+	<input type="text" name="password" class="form-control">
+	<button class="btn btn-outline-secondary" type="submit">Set</button>
+</form>
+</body>
+</html>
