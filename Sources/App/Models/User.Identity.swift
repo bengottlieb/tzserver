@@ -18,7 +18,7 @@ extension User {
 		var authenticationPassword: String { return self.password ?? "password" }
 		
 		var isSuperuser: Bool {
-			return self.email.hasSuffix("@standalone.com")
+			return self.email?.hasSuffix("@standalone.com") == true
 		}
 		
 		var derivedUsername: String {
