@@ -2,11 +2,6 @@ import Vapor
 import Crypto
 import Authentication
 
-struct LoginResult: Codable, Content {
-	let user: User.Public
-	let token: String
-}
-
 /// Controls basic CRUD operations on `User`s.
 struct UsersController: RouteCollection {
 	func boot(router: Router) throws {
@@ -32,6 +27,7 @@ struct UsersController: RouteCollection {
 		tokenAuthGroup.get(User.parameter, use: getHandler)
 		tokenAuthGroup.get(User.parameter, "timezones", use: getTimezonesHandler)
 		tokenAuthGroup.get(use: getAllHandler)
+		tokenAuthGroup.post("invite", use: inviteHandler)
 		tokenAuthGroup.put(User.parameter, use: updateHandler)
 	}
 		
@@ -45,6 +41,20 @@ struct UsersController: RouteCollection {
 
 		return try req.parameters.next(User.self).flatMap(to: [Timezone].self) { user in
 			return try user.timezones.query(on: req).all()
+		}
+	}
+	
+	func inviteHandler(_ req: Request) throws -> Future<User> {
+		let user = try req.requireAuthenticated(User.self)
+		if user.emailIsVerified == false {
+			throw Abort(.proxyAuthenticationRequired, reason: "\(user.name ?? "User") has not been verified. Please check your email and click the activation link.")
+		}
+		
+		return try req.content.decode(InvitePayload.self).flatMap(to: User.self) { payload in
+			let user = User(identity: User.Identity(email: payload.emailAddress, password: ""), name: payload.name, permissions: .user)
+			
+			user.sendInvitationEmail()
+			return user.save(on: req)
 		}
 	}
 	
@@ -146,3 +156,14 @@ struct UsersController: RouteCollection {
 //		}
 //	}
 }
+
+struct LoginResult: Codable, Content {
+	let user: User.Public
+	let token: String
+}
+
+struct InvitePayload: Codable, Content {
+	let name: String
+	let emailAddress: String
+}
+
