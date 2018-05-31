@@ -99,12 +99,16 @@ extension User: BasicAuthenticatable {
 
 	public static func authenticate(using basic: BasicAuthorization, verifier: PasswordVerifier, on conn: DatabaseConnectable) -> Future<User?> {
 		do {
-			return try User.query(on: conn).filter(usernameKey == basic.username).first().map(to: User?.self) { user in
-				guard let user = user, try verifier.verify(basic.password, created: user.basicPassword) else {
-					return nil
-				}
+			return try User.query(on: conn).filter(usernameKey == basic.username).first().map(to: User?.self) { found in
+				guard var user = found else { return nil }
 				
-				return user
+				if user.lockedOut != true, try verifier.verify(basic.password, created: user.basicPassword) { return user }
+				
+				user.wrongPasswordCount = (user.wrongPasswordCount ?? 0) + 1
+				user.lockedOut = (user.wrongPasswordCount ?? 0) >= 3
+				_ = user.save(on: conn)
+				
+				return nil
 			}
 		} catch {
 			return conn.eventLoop.newFailedFuture(error: error)

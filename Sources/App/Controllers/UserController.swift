@@ -10,12 +10,7 @@ struct UsersController: RouteCollection {
 		usersRoute.get("exists", String.parameter, use: existsHandler)
 		usersRoute.get("validate", String.parameter, use: validationHandler)
 
-//		usersRoute.get(use: getAllHandler)
-//		usersRoute.put(User.parameter, use: updateHandler)
 		usersRoute.post(use: createHandler)
-//		usersRoute.get(User.Public.parameter, use: getHandler)
-//		usersRoute.delete(User.parameter, use: deleteHandler)
-//		usersRoute.get(User.parameter, "timezones", use: getTimezonesHandler)
 		
 		let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
 		let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
@@ -25,6 +20,7 @@ struct UsersController: RouteCollection {
 		let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware)
 		tokenAuthGroup.delete(User.parameter, use: deleteHandler)
 		tokenAuthGroup.get(User.parameter, use: getHandler)
+		tokenAuthGroup.post("readmit", User.parameter, use: readmitUserHandler)
 		tokenAuthGroup.get(User.parameter, "timezones", use: getTimezonesHandler)
 		tokenAuthGroup.get(use: getAllHandler)
 		tokenAuthGroup.post("invite", use: inviteHandler)
@@ -34,6 +30,20 @@ struct UsersController: RouteCollection {
 	func getAllHandler(_ req: Request) throws -> Future<[User]> {
 		_ = try req.requireAuthenticated(User.self)
 		return User.query(on: req).all()
+	}
+	
+	func readmitUserHandler(_ req: Request) throws -> Future<User> {
+		let currentUser = try req.requireAuthenticated(User.self)
+		if currentUser.permissions != .admin {
+			throw Abort(.forbidden, reason: "\(currentUser.name ?? "user") is not an admin.")
+		}
+		
+		return try req.parameters.next(User.self).flatMap(to: User.self) { user in
+			user.lockedOut = false
+			user.wrongPasswordCount = 0
+			
+			return user.save(on: req)
+		}
 	}
 	
 	func getTimezonesHandler(_ req: Request) throws -> Future<[Timezone]> {
@@ -59,7 +69,13 @@ struct UsersController: RouteCollection {
 	}
 	
 	func loginHandler(_ req: Request) throws -> Future<Response> {
-		let user = try req.requireAuthenticated(User.self)
+		var user: User!
+		
+		do {
+			user = try req.requireAuthenticated(User.self)
+		} catch {
+			throw error
+		}
 		if user.emailIsVerified == false {
 			throw Abort(.proxyAuthenticationRequired, reason: "\(user.name ?? "User") has not been verified. Please check your email and click the activation link.")
 		}
