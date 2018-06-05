@@ -108,6 +108,8 @@ extension User: BasicAuthenticatable {
 				user.lockedOut = (user.wrongPasswordCount ?? 0) >= 3
 				_ = user.save(on: conn)
 				
+				if user.lockedOut == true { throw Abort(.unauthorized, reason: "\(user.name ?? "User") is locked out.") }
+
 				return nil
 			}
 		} catch {
